@@ -1,9 +1,9 @@
-﻿namespace DotNetWebInterface.Application.Services
+﻿namespace DotNetWebInterface.Services
 {
-    public interface IServiceContainer 
-    { 
-        IServiceProvider _serviceProvider { get; } 
-        T GetService<T>() where T : IService; 
+    public interface IServiceContainer
+    {
+        IService _serviceProvider { get; }
+        T GetService<T>() where T : IService;
         void AddService<T>(T service) where T : IService;
     }
 }

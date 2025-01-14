@@ -1,14 +1,15 @@
-﻿using DotNetWebInterface.Application.Core;
+﻿using DotNetWebInterface.Server;
 using DotNetWebInterface.Validator;
-using System.Collections.Specialized; 
+using System.Collections.Specialized;
 using System.Security.Claims;
+using DotNetWebInterface.Controllers.UserFiles;
 
-namespace DotNetWebInterface.Application.Route
+namespace DotNetWebInterface.Controllers
 {
     /// <summary>
-    /// Represents the base class for all routes in the application
+    /// Represents the base class for all controllers in the application
     /// </summary>
-    public abstract class BaseRoute : IDisposable
+    public abstract class Controller : IDisposable
     {
         private bool _disposed = false;
 
@@ -16,31 +17,38 @@ namespace DotNetWebInterface.Application.Route
         /// This variable is responsible for storing the data passed through authentication
         /// </summary>
         protected IEnumerable<Claim> Claims => Context?.Claims ?? Enumerable.Empty<Claim>();
-         
+
         /// <summary>
         /// Gets the query string parameters for the current request
         /// </summary>
-        protected NameValueCollection QueryString => Context?.QueryString ?? new NameValueCollection(); 
-         
+        protected NameValueCollection QueryString => Context?.QueryString ?? new NameValueCollection();
+
         /// <summary>
         /// Gets or sets the HTTP context for the current request
         /// </summary>
         protected HttpContext? Context { get; private set; }
 
+        protected Files? Files { get; private set; } 
+
         /// <summary>
-        /// Assigns the HTTP context to the route
+        /// Assigns the HTTP context to the controller
         /// </summary>
         /// <param name="context">The HTTP context for the current request</param>
         internal void SetContext(HttpContext context)
         {
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(BaseRoute));
-            } 
+                throw new ObjectDisposedException(nameof(Controller));
+            }
 
-            Context = context ?? throw new ArgumentNullException(nameof(context)); 
+            Context = context ?? throw new ArgumentNullException(nameof(context));
+
+            Files = new Files
+            {
+                Context = context
+            }; 
         }
-  
+
         /// <summary>
         /// Writes the specified content to the response with the given status code
         /// </summary>
@@ -54,8 +62,8 @@ namespace DotNetWebInterface.Application.Route
                 await Context.WriteAsync(
                     statusCode,
                     content,
-                    JsonValidator.IsJson(content) ? "application/json" : "text/plain"
-                ); 
+                    JsonValidator.IsJson(content) ? "application/json; charset=utf-8" : "text/plain; charset=utf-8"
+                );
             }
             else
             {
@@ -64,20 +72,20 @@ namespace DotNetWebInterface.Application.Route
         }
 
         /// <summary>
-        /// Disposes the route and releases resources
+        /// Disposes the controller and releases resources
         /// </summary>
         public void Dispose()
         {
             if (!_disposed)
             {
-                _disposed = true; 
-                Context = null!; 
+                _disposed = true;
+                Context = null!;
 
                 GC.SuppressFinalize(this);
             }
         }
-         
-        ~BaseRoute()
+
+        ~Controller()
         {
             Dispose();
         }

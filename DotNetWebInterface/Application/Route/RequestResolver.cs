@@ -1,8 +1,8 @@
-﻿using DotNetWebInterface.Application.Core;
-using Newtonsoft.Json; 
+﻿using DotNetWebInterface.Server;
+using Newtonsoft.Json;
 using System.Net;
 
-namespace DotNetWebInterface.Application.Route
+namespace DotNetWebInterface.Route
 {
     public static class RequestResolver
     {
@@ -10,10 +10,10 @@ namespace DotNetWebInterface.Application.Route
         {
             if (routeInfo.RequestType != typeof(object))
             {
-                string str = BodyToJson(context.Request);   
+                string str = BodyToJson(context.Request);
                 var request = JsonConvert.DeserializeObject(str, routeInfo.RequestType);
-                return new object?[] { request }; 
-            }  
+                return new object?[] { request };
+            }
 
             return null;
         }
@@ -25,10 +25,10 @@ namespace DotNetWebInterface.Application.Route
             using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
             {
                 string body = reader.ReadToEnd();
-                return body; 
+                return body;
             }
-        } 
-         
+        }
+
         //private static string QueryStringToJson(NameValueCollection queryString)
         //{
         //    if (queryString == null) return "null";

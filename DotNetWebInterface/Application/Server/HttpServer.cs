@@ -1,11 +1,12 @@
 ﻿using System.Net;
-using DotNetWebInterface.Application.Cors;
-using DotNetWebInterface.Application.Dependency;
-using DotNetWebInterface.Application.Middleware;
-using DotNetWebInterface.Application.Route;
+using DotNetWebInterface.Controllers;
+using DotNetWebInterface.Cors;
+using DotNetWebInterface.Middleware;
+using DotNetWebInterface.Route;
+using DotNetWebInterface.Services;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace DotNetWebInterface.Application.Core
+namespace DotNetWebInterface.Server
 {
     public class HttpServer
     {
@@ -28,10 +29,10 @@ namespace DotNetWebInterface.Application.Core
         {
             char charToAdd = '/';
             string newPrefix = prefix.StartsWith(charToAdd.ToString()) ? prefix : charToAdd + prefix;
-            RoutePrefix = newPrefix; 
+            RoutePrefix = newPrefix;
 
-            RouteResolver.SetPrefix(RoutePrefix);
-            RouteResolver.ResolvePrefix();  
+            ControllerResolver.SetPrefix(RoutePrefix);
+            ControllerResolver.ResolvePrefix();
         }
 
         internal void AddCorsPolicy(CorsPolicyBuilder corsPolicy)
@@ -42,7 +43,7 @@ namespace DotNetWebInterface.Application.Core
         internal void AddMiddleware<T>() where T : class
         {
             var serviceProvider = ServiceContainer.Resolve<IServiceProvider>();
-            var middleware = ActivatorUtilities.CreateInstance<T>(serviceProvider); 
+            var middleware = ActivatorUtilities.CreateInstance<T>(serviceProvider);
 
             var invokeMethod = typeof(T).GetMethod("Invoke", Type.EmptyTypes);
 
@@ -57,16 +58,16 @@ namespace DotNetWebInterface.Application.Core
         internal async Task RunAsync()
         {
             _listener.Start();
-            Console.ForegroundColor = ConsoleColor.Yellow; 
-            Console.Write($", you are using {pipeline.Count} middleware{(pipeline.Count > 1 ? "s" : "")}"); 
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Write($", you are using {pipeline.Count} middleware{(pipeline.Count > 1 ? "s" : "")}");
             Console.WriteLine();
 
-            Console.ResetColor(); 
+            Console.ResetColor();
             Console.WriteLine($"Server is running on {string.Join(", ", _listener.Prefixes)}");
 
             while (true)
             {
-                var context = await _listener.GetContextAsync(); 
+                var context = await _listener.GetContextAsync();
                 Console.ResetColor();
                 Request(context);
             }
@@ -76,8 +77,8 @@ namespace DotNetWebInterface.Application.Core
         {
             _ = Task.Run(async () =>
             {
-                var requestPath = $"{context.Request.Url?.AbsolutePath.ToLowerInvariant()}";  
-                  
+                var requestPath = $"{context.Request.Url?.AbsolutePath.ToLowerInvariant()}";
+
                 var requestContext = new HttpContext(context.Request, context.Response, requestPath);
                 corsPolicyBuilder?.Build(context.Response);
 
@@ -87,7 +88,7 @@ namespace DotNetWebInterface.Application.Core
                         ? method
                         : RequestMethod.Get;
 
-                    pipeline.SetRouteExecution(context => RouteResolver.GetRouteExecution(context)(context));
+                    pipeline.SetRouteExecution(context => ControllerResolver.GetRouteExecution(context)(context));
                     await pipeline.Execute(requestContext);
                 }
                 catch (Exception ex)

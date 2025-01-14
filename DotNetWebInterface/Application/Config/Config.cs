@@ -1,11 +1,10 @@
-﻿
-namespace DotNetWebInterface.Environment
+﻿namespace DotNetWebInterface.Config
 {
     public class Config
     {
-        public static string GetEnvironmentVariable(string key) 
+        public static string GetEnvironmentVariable(string key)
         {
-            return System.Environment.GetEnvironmentVariable(key) ?? "";
+            return Environment.GetEnvironmentVariable(key) ?? "";
         }
     }
 }

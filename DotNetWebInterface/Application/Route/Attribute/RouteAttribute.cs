@@ -1,4 +1,4 @@
-﻿namespace DotNetWebInterface.Application.Route
+﻿namespace DotNetWebInterface.Route
 {
     /// <summary>
     /// Attribute to define a route for a method
@@ -14,7 +14,7 @@
         /// <summary>
         /// Gets the HTTP method
         /// </summary>
-        internal RequestMethod Method { get; } 
+        internal RequestMethod Method { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RouteAttribute"/> class
@@ -24,7 +24,7 @@
         public RouteAttribute(string path, RequestMethod method = RequestMethod.Get)
         {
             Path = path;
-            Method = method; 
+            Method = method;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace DotNetWebInterface.Application.Route
+﻿namespace DotNetWebInterface.Route
 {
     /// <summary>
     /// Enum representing the HTTP methods

@@ -1,8 +1,8 @@
-﻿using DotNetWebInterface.Application.Core;
-using DotNetWebInterface.Application.Route;
-using DotNetWebInterface.Application.Services;
+﻿using DotNetWebInterface.Controllers;
+using DotNetWebInterface.Server;
+using DotNetWebInterface.Services;
 
-namespace DotNetWebInterface.Application.Middleware
+namespace DotNetWebInterface.Middleware
 {
     public class BearerAuthorizationMiddleware
     {
@@ -17,7 +17,7 @@ namespace DotNetWebInterface.Application.Middleware
         {
             return async (context, next) =>
             {
-                if (RouteResolver.IsAuthenticationRequired(context.AbsolutePath))
+                if (ControllerResolver.IsAuthenticationRequired(context.AbsolutePath))
                 {
                     var authHeader = context.Request.Headers["Authorization"];
                     if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
@@ -33,9 +33,9 @@ namespace DotNetWebInterface.Application.Middleware
                         context.Response.StatusCode = 401;
                         await context.WriteAsync(401, "Unauthorized: Invalid token");
                         return;
-                    } 
+                    }
 
-                    context.SetClaims(payload); 
+                    context.SetClaims(payload);
                 }
 
                 await next();

@@ -1,6 +1,6 @@
-﻿using DotNetWebInterface.Application.Core; 
+﻿using DotNetWebInterface.Server;
 
-namespace DotNetWebInterface.Application.Middleware
+namespace DotNetWebInterface.Middleware
 {
     /// <summary>
     /// Represents a pipeline for handling middleware in the application
@@ -70,5 +70,5 @@ namespace DotNetWebInterface.Application.Middleware
         }
     }
 }
- 
+
 

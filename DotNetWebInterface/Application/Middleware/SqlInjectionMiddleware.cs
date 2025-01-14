@@ -1,8 +1,8 @@
-﻿using DotNetWebInterface.Application.Core;
+﻿using DotNetWebInterface.Server;
 using System.Text.RegularExpressions;
 
-namespace DotNetWebInterface.Application.Middleware 
-{ 
+namespace DotNetWebInterface.Middleware
+{
     public class SqlInjectionMiddleware
     {
         public Func<HttpContext, Func<Task>, Task> Invoke()
@@ -18,9 +18,9 @@ namespace DotNetWebInterface.Application.Middleware
                             string? rawValue = context.QueryString[key];
 
                             if (rawValue != null && ContainsPattern(rawValue))
-                            { 
-                                context.QueryString.Remove(key); 
-                            } 
+                            {
+                                context.QueryString.Remove(key);
+                            }
                         }
                     }
                 }
@@ -38,7 +38,6 @@ namespace DotNetWebInterface.Application.Middleware
 
             return Regex.IsMatch(input, pattern, RegexOptions.IgnoreCase) ||
                    Regex.IsMatch(input, logicalPattern, RegexOptions.IgnoreCase);
-        } 
+        }
     }
 }
-  

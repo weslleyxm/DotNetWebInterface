@@ -1,11 +1,11 @@
-﻿using Newtonsoft.Json; 
+﻿using Newtonsoft.Json;
 
-namespace DotNetWebInterface.Application.Route
+namespace DotNetWebInterface.Controllers
 {
     /// <summary>
-    /// Represents an abstract base class for defining routes
+    /// Represents an abstract base class for defining controller
     /// </summary>
-    public abstract class Route : BaseRoute
+    public abstract class ControllerBase : Controller
     {
         /// <summary>
         /// Sends a response asynchronously with the specified status code
@@ -17,7 +17,7 @@ namespace DotNetWebInterface.Application.Route
         protected async Task SendAsync<T>(T response, int statusCode = 200) where T : class
         {
             string message = JsonConvert.SerializeObject(response);
-            await base.WriteAsync(message, statusCode);
+            await WriteAsync(message, statusCode);
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace DotNetWebInterface.Application.Route
                 message = response
             });
 
-            await base.WriteAsync(message, statusCode);
+            await WriteAsync(message, statusCode);
         }
 
         /// <summary>

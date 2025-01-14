@@ -1,6 +1,6 @@
-﻿using DotNetWebInterface.Application.Middleware; 
+﻿using DotNetWebInterface.Middleware;
 
-namespace DotNetWebInterface.Application.Extensions
+namespace DotNetWebInterface.Extensions
 {
     /// <summary>
     /// Extension methods for configuring the web application

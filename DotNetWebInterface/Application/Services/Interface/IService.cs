@@ -1,11 +1,11 @@
-﻿using DotNetWebInterface.Application.Core;
+﻿using DotNetWebInterface.Server;
 
-namespace DotNetWebInterface.Application.Services
+namespace DotNetWebInterface.Services
 {
-    public interface IService
+    public interface IService 
     {
-        string Name { get; } 
-        void Initialize(IServiceContainer services);  
-        void HandleRequest(HttpContext context); 
-    } 
+        string Name { get; }
+        void Initialize(IServiceContainer services);
+        void HandleRequest(HttpContext context);
+    }
 }
