@@ -1,8 +1,7 @@
 ﻿using System.Net;
 using DotNetWebInterface.Controllers;
 using DotNetWebInterface.Cors;
-using DotNetWebInterface.Middleware;
-using DotNetWebInterface.Route;
+using DotNetWebInterface.Middleware; 
 using DotNetWebInterface.Services;
 using Microsoft.Extensions.DependencyInjection;
 

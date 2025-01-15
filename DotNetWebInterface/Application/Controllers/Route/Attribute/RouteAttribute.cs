@@ -1,4 +1,4 @@
-﻿namespace DotNetWebInterface.Route
+﻿namespace DotNetWebInterface.Controllers.Route
 {
     /// <summary>
     /// Attribute to define a route for a method

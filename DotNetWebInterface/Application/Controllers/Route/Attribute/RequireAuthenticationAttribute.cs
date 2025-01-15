@@ -1,6 +1,6 @@
-﻿namespace DotNetWebInterface.Route
+﻿namespace DotNetWebInterface.Controllers.Authentication 
 {
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
     public class RequireAuthenticationAttribute : Attribute
     {
         public RequireAuthenticationAttribute()

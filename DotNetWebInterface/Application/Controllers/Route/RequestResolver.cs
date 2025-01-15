@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using System.Net;
 
-namespace DotNetWebInterface.Route
+namespace DotNetWebInterface
 {
     public static class RequestResolver
     {

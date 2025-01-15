@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Specialized;
 
-namespace DotNetWebInterface.Route
+namespace DotNetWebInterface
 {
     /// <summary>
     /// Provides methods to create requests from raw JSON strings

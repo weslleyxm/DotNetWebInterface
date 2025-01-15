@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json;
-using System.Reflection;
+﻿using System.Reflection;
 
-namespace DotNetWebInterface.Route
+namespace DotNetWebInterface
 {
     /// <summary>
     /// Represents the information about a route, including the HTTP method, action, type, request type, and authentication/authorization requirements

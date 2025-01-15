@@ -1,4 +1,5 @@
-﻿using DotNetWebInterface.Middleware;
+﻿using DotNetWebInterface.Authentication;
+using DotNetWebInterface.Middleware;
 
 namespace DotNetWebInterface.Extensions
 {

@@ -1,5 +1,7 @@
-﻿using System.Reflection;
-using DotNetWebInterface.Route;
+﻿using System.Reflection; 
+using DotNetWebInterface.Controllers.Authentication;
+using DotNetWebInterface.Controllers.Role;
+using DotNetWebInterface.Controllers.Route;
 using DotNetWebInterface.Server;
 
 namespace DotNetWebInterface.Controllers
@@ -22,58 +24,76 @@ namespace DotNetWebInterface.Controllers
             Console.ForegroundColor = ConsoleColor.Green;
 
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
             var derivedTypes = assemblies
-                               .SelectMany(assembly => assembly.GetTypes())
-                               .Where(t => typeof(Controller).IsAssignableFrom(t) && !t.IsAbstract)
-                               .ToList();
+                                .SelectMany(assembly => assembly.GetTypes())
+                                .Where(t => typeof(Controller).IsAssignableFrom(t) && !t.IsAbstract)
+                                .ToList();
 
             foreach (var routeClass in derivedTypes)
             {
-                var methods = routeClass.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => m.GetCustomAttributes<RouteAttribute>().Any());
-
+                var isRequiredAuthenticationForAll = routeClass.GetCustomAttributes<RequireAuthenticationAttribute>(true).Any();
+                var methods = GetPublicInstanceMethods(routeClass).Where(m => m.GetCustomAttributes<RouteAttribute>().Any());
+                  
                 foreach (var method in methods)
                 {
-                    var routeAttribute = method.GetCustomAttribute<RouteAttribute>();
-                    if (routeAttribute != null)
-                    {
-                        var routeKey = routeAttribute.Path.ToLowerInvariant();
-
-                        if (_routes.ContainsKey(routeKey))
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"Duplicate route detected: {routeKey}");
-                            Console.ResetColor();
-                            continue;
-                        }
-
-                        var authenticationRequired = false;
-                        var roleRequired = false;
-
-                        var authenticationAttribute = method.GetCustomAttribute<RequireAuthenticationAttribute>();
-                        if (authenticationAttribute != null)
-                        {
-                            authenticationRequired = true;
-                        }
-
-                        string strRoleRequire = "";
-                        var roleAttribute = method.GetCustomAttribute<RequireRoleAttribute>();
-                        if (roleAttribute != null)
-                        {
-                            strRoleRequire = roleAttribute.RequiredRole;
-                            roleRequired = true;
-                        }
-
-                        ParameterInfo[] parameters = method.GetParameters();
-                        var requestType = parameters.Length > 0 ? parameters[0].ParameterType : typeof(object);
-
-                        _routes.Add(routeKey, new RouteInfo(routeAttribute.Method, method, routeClass, requestType, authenticationRequired, roleRequired, strRoleRequire));
-                    }
+                    ProcessRoute(routeClass, method, isRequiredAuthenticationForAll);
                 }
             }
 
             Console.Write($"{_routes.Count} route{(_routes.Count > 1 ? "s" : "")} found");
+        }
+
+
+        /// <summary>
+        /// Gets the public instance methods of the specified type
+        /// </summary>
+        /// <param name="type">The type to get the public instance methods from</param>
+        /// <returns>An enumerable of MethodInfo representing the public instance methods of the type</returns>
+        private static IEnumerable<MethodInfo> GetPublicInstanceMethods(Type type) =>
+            type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+
+        /// <summary>  
+        /// Processes a route by extracting route information from the method and adding it to the route dictionary
+        /// It checks for duplicate routes, determines if authentication and role requirements are needed,  
+        /// and extracts the request type from the method parameters
+        /// </summary>  
+        /// <param name="routeClass">The class type of the route</param>  
+        /// <param name="method">The method information of the route</param>  
+        /// <param name="isRequiredAuthenticationForAll">Indicates if authentication is required for all methods in the class</param>
+        /// </summary> 
+        private static void ProcessRoute(Type routeClass, MethodInfo method, bool isRequiredAuthenticationForAll)
+        {
+            var routeAttribute = method.GetCustomAttribute<RouteAttribute>();
+            if (routeAttribute == null) return;
+
+            var routeKey = routeAttribute.Path.ToLowerInvariant();
+
+            if (_routes.ContainsKey(routeKey))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Duplicate route detected: {routeKey}");
+                Console.ResetColor();
+                return;
+            }
+
+            var authenticationRequired = isRequiredAuthenticationForAll || method.GetCustomAttribute<RequireAuthenticationAttribute>() != null;
+             
+            var roleAttribute = method.GetCustomAttribute<RequireRoleAttribute>();
+            var roleRequired = roleAttribute != null;
+            var strRoleRequire = roleAttribute?.RequiredRole ?? string.Empty;
+
+            var parameters = method.GetParameters();
+            var requestType = parameters.FirstOrDefault()?.ParameterType ?? typeof(object);
+
+            _routes.Add(routeKey, new RouteInfo(
+                routeAttribute.Method,
+                method,
+                routeClass,
+                requestType,
+                authenticationRequired,
+                roleRequired,
+                strRoleRequire
+            ));
         }
 
         /// <summary>

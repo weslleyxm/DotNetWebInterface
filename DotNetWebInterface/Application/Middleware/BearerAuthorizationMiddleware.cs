@@ -2,7 +2,7 @@
 using DotNetWebInterface.Server;
 using DotNetWebInterface.Services;
 
-namespace DotNetWebInterface.Middleware
+namespace DotNetWebInterface.Authentication
 {
     public class BearerAuthorizationMiddleware
     {

@@ -1,5 +1,4 @@
-﻿using DotNetWebInterface.Application.Controllers.Role;
-using DotNetWebInterface.Controllers.Role;
+﻿using DotNetWebInterface.Controllers.Role;
 using DotNetWebInterface.Cors;
 using DotNetWebInterface.Middleware;
 using DotNetWebInterface.Server;
