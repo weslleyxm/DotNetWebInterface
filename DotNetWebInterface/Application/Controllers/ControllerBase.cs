@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using Newtonsoft.Json; 
 
 namespace DotNetWebInterface.Controllers
 {
@@ -24,10 +24,10 @@ namespace DotNetWebInterface.Controllers
         /// Sends an OK response asynchronously
         /// </summary>
         /// <returns>A task that represents the asynchronous operation</returns>
-        protected async Task SendOk()
+        protected async Task SendOk(string message = "OK")
         {
-            await SendResponse("OK", 200);
-        }
+            await SendResponse(message, 200); 
+        } 
 
         /// <summary>
         /// Sends a Bad Request response asynchronously with an optional error message
@@ -105,16 +105,6 @@ namespace DotNetWebInterface.Controllers
             });
 
             await WriteAsync(message, statusCode);
-        }
-
-        /// <summary>
-        /// Retrieves the value of a specific claim type from the claims collection
-        /// </summary>
-        /// <param name="claimType">The type of the claim to retrieve</param>
-        /// <returns>The value of the claim if found; otherwise, "undefined"</returns>
-        protected string GetClaimValue(string claimType)
-        {
-            return Claims.FirstOrDefault(c => c.Type == claimType)?.Value ?? "undefined";
-        }
+        } 
     }
 }

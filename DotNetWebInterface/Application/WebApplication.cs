@@ -1,9 +1,10 @@
-﻿using DotNetWebInterface.Controllers.Role;
+﻿using DotNetWebInterface.Config;
+using DotNetWebInterface.Controllers;
 using DotNetWebInterface.Cors;
-using DotNetWebInterface.Middleware;
 using DotNetWebInterface.Server;
 using DotNetWebInterface.Services;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace DotNetWebInterface
 {
@@ -12,14 +13,15 @@ namespace DotNetWebInterface
     /// </summary>
     public class WebApplication : IWebApplication
     {
-        private readonly HttpServer httpServer;
+        private readonly HttpWebServer httpServer;
         private CorsPolicyBuilder? corsPolicyBuilder;
+        private readonly List<Func<Task>> _onStartActions = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebApplication"/> class
         /// </summary>
         /// <param name="httpServer">The HTTP server to be used by the application</param>
-        public WebApplication(HttpServer httpServer)
+        public WebApplication(HttpWebServer httpServer)
         {
             this.httpServer = httpServer;
         }
@@ -30,11 +32,26 @@ namespace DotNetWebInterface
         public async Task Run()
         {
             SetDefaultMiddlewares();
+            await ExecuteOnStartActionsAsync();
 
-            Console.ResetColor(); 
+            Console.ResetColor();
+
+            PreWarm();
 
             await httpServer.RunAsync();
-        } 
+        }
+
+        /// <summary>
+        /// Executes the actions registered to run on application start
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation</returns>
+        public async Task ExecuteOnStartActionsAsync()
+        {
+            foreach (var action in _onStartActions)
+            {
+                await action();
+            }
+        }
 
         /// <summary>
         /// Configures CORS policy for the web application
@@ -56,7 +73,7 @@ namespace DotNetWebInterface
         {
             httpServer.AddMiddleware<T>();
         }
-          
+
         /// <summary>
         /// Sets the route prefix for the web application
         /// </summary>
@@ -80,11 +97,22 @@ namespace DotNetWebInterface
         {
             ServiceContainer.ConfigureServices(services =>
             {
-                services.AddSingleton<IRoleProvider>(provider => new JwtRoleExtractor());  
-            }); 
+                services.AddSingleton<IRoleProvider>(provider => new JwtRoleExtractor());
+            });
+        }
 
-            httpServer.AddMiddleware<RoleMiddleware>();
-            httpServer.AddMiddleware<FileMiddleware>(); 
+        /// <summary>
+        /// Registers an action to be executed when the application starts
+        /// </summary>
+        /// <param name="value">The action to execute on start</param>
+        public void OnStart(Func<Task> value)
+        {
+            _onStartActions.Add(value);
+        }
+
+        internal void PreWarm()
+        {
+            ControllerResolver.PreWarm(); 
         }
     }
-} 
+}

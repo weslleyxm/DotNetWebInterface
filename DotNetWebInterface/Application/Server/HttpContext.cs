@@ -1,13 +1,14 @@
-﻿using System.Collections.Specialized;
+﻿using System.Collections.Specialized; 
 using System.Net;
 using System.Security.Claims;
+using System.Text;
 
 namespace DotNetWebInterface.Server
 {
     /// <summary>
     /// Represents the HTTP context for a request and response
     /// </summary>
-    public class HttpContext
+    public class HttpContext : IDisposable
     {
         /// <summary>
         /// Gets the HTTP request
@@ -18,6 +19,11 @@ namespace DotNetWebInterface.Server
         /// Gets the HTTP response
         /// </summary>
         internal HttpListenerResponse Response { get; }
+
+        /// <summary>
+        /// Gets or sets the parameters associated with the request
+        /// </summary> 
+        internal Dictionary<string, string>? Parameters { get; set; }
 
         /// <summary>
         /// Gets the absolute path of the request
@@ -38,6 +44,13 @@ namespace DotNetWebInterface.Server
         /// Gets or sets the files associated with the request
         /// </summary>
         internal IEnumerable<string>? Files { get; set; }
+         
+        internal readonly DisposablesManager _disposablesManager = new(); 
+
+        /// <summary>
+        /// Indicates whether the object has been disposed
+        /// </summary>
+        private bool _disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HttpContext"/> class
@@ -50,9 +63,14 @@ namespace DotNetWebInterface.Server
             Request = request;
             Response = response;
             AbsolutePath = absolutePath;
-            QueryString = request.QueryString;
+            QueryString = request.QueryString; 
         }
 
+        internal void AddDisposable(IDisposable disposable)
+        {
+            _disposablesManager.Add(disposable);
+        }
+         
         /// <summary>
         /// Sets the claims associated with the request
         /// </summary>
@@ -73,8 +91,45 @@ namespace DotNetWebInterface.Server
         {
             Response.StatusCode = code;
             Response.ContentType = contentType;
-            using var writer = new StreamWriter(Response.OutputStream);
-            await writer.WriteAsync(content);
+              
+            using var writer = new StreamWriter(Response.OutputStream, Encoding.UTF8, bufferSize: 4096, leaveOpen: true);
+            await writer.WriteAsync(content); 
+        }
+
+        /// <summary>
+        /// Releases the unmanaged resources used by the HttpContext and optionally releases the managed resources
+        /// </summary>
+        /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _disposablesManager.DisposeAll();
+                    Request?.InputStream?.Dispose();
+                    Response?.OutputStream?.Close();
+                }  
+
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Disposes the current instance
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Destructor to ensure resources are released if Dispose is not called
+        /// </summary>
+        ~HttpContext()
+        {
+            Dispose(disposing: false);
         }
     }
 }

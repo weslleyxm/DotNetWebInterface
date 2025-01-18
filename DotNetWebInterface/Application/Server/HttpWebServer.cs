@@ -7,21 +7,26 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetWebInterface.Server
 {
-    public class HttpServer
+    public class HttpWebServer
     {
         private readonly HttpListener _listener;
-        private readonly string _host;
+        private string _host; 
         private MiddlewarePipeline pipeline;
         private CorsPolicyBuilder? corsPolicyBuilder;
         internal string RoutePrefix { get; private set; }
 
-        public HttpServer(string host)
+        public HttpWebServer()
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add($"{host}/");
+            _host = string.Empty;
             pipeline = new MiddlewarePipeline();
             RoutePrefix = string.Empty;
-            _host = host;
+        }
+
+        internal void Initialize(string host)
+        {
+            _listener.Prefixes.Add($"{host}/");
+            _host = host; 
         }
 
         internal void SetRoutePrefix(string prefix)
@@ -77,16 +82,14 @@ namespace DotNetWebInterface.Server
             _ = Task.Run(async () =>
             {
                 var requestPath = $"{context.Request.Url?.AbsolutePath.ToLowerInvariant()}";
-
+                context.Response.Headers.Add("Cache-Control", "no-cache");
+                context.Response.Headers.Add("Buffer-Control", "no-buffer"); 
                 var requestContext = new HttpContext(context.Request, context.Response, requestPath);
+
                 corsPolicyBuilder?.Build(context.Response);
 
                 try
-                {
-                    var httpMethod = Enum.TryParse(context.Request.HttpMethod, true, out RequestMethod method)
-                        ? method
-                        : RequestMethod.Get;
-
+                { 
                     pipeline.SetRouteExecution(context => ControllerResolver.GetRouteExecution(context)(context));
                     await pipeline.Execute(requestContext);
                 }
@@ -94,6 +97,12 @@ namespace DotNetWebInterface.Server
                 {
                     Console.WriteLine($"Error: {ex.Message}");
                     await requestContext.WriteAsync(404, "Internal Server Error");
+                }
+                finally
+                {
+                    context.Response.OutputStream.Close(); // Fecha o fluxo de saída
+                    context.Response.Close();
+                    requestContext.Dispose();
                 }
             });
         }

@@ -1,4 +1,6 @@
 ﻿using DotNetWebInterface.Server;
+using DotNetWebInterface.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetWebInterface
 {
@@ -11,6 +13,11 @@ namespace DotNetWebInterface
         /// Gets the configuration settings for the application
         /// </summary>
         public Configuration Configuration { get; }
+
+        /// <summary>
+        /// Gets the HTTP server for the application
+        /// </summary>
+        public HttpWebServer HttpServer { get; } 
 
         /// <summary>
         /// Builds the web application
@@ -37,5 +44,12 @@ namespace DotNetWebInterface
         /// <typeparam name="TOptions">The type of the options to retrieve</typeparam>
         /// <returns>The configured options if found; otherwise, a new instance of the options</returns>
         public TOptions GetConfiguration<TOptions>() where TOptions : class, new();
+
+        /// <summary>
+        /// Adds scoped services to the application's dependency injection container
+        /// </summary>
+        /// <param name="services">An action to configure the services</param>
+        /// <returns>The updated service collection</returns>
+        public void AddScopedServices(Action<ScopedServicesBuilder> services);
     }
 } 

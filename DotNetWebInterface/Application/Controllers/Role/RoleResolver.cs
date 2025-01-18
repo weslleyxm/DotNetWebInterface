@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace DotNetWebInterface.Controllers.Role
+namespace DotNetWebInterface.Controllers
 {
     public class RoleResolver
     {

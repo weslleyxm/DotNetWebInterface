@@ -1,5 +1,4 @@
-﻿using DotNetWebInterface.Controllers;
-using DotNetWebInterface.Controllers.Role;
+﻿using DotNetWebInterface.Controllers; 
 using DotNetWebInterface.Server;
 
 namespace DotNetWebInterface.Middleware
@@ -18,7 +17,7 @@ namespace DotNetWebInterface.Middleware
         public Func<HttpContext, Func<Task>, Task> Invoke()
         {
             return async (context, next) =>
-            {
+            { 
                 if (ControllerResolver.IsRoleRequired(context.AbsolutePath, out string requiredRole)) 
                 {
                     var roleOptions = _applicationBuilder.GetConfiguration<RoleOptions>();
@@ -43,7 +42,7 @@ namespace DotNetWebInterface.Middleware
                     {
                         Console.BackgroundColor = ConsoleColor.DarkYellow;
                         Console.ForegroundColor = ConsoleColor.Black; 
-                        Console.WriteLine("[Warning] It looks like no levels are configured for the roles ensure levels are properly defined");
+                        Console.WriteLine("It looks like no levels are configured for the roles ensure levels are properly defined");
                         Console.ResetColor();
 
                         await context.WriteAsync(403, "Forbidden: insufficient role level");

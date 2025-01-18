@@ -3,6 +3,7 @@ using DotNetWebInterface.Validator;
 using System.Collections.Specialized;
 using System.Security.Claims;
 using DotNetWebInterface.Controllers.UserFiles;
+using Newtonsoft.Json;
 
 namespace DotNetWebInterface.Controllers
 {
@@ -28,7 +29,10 @@ namespace DotNetWebInterface.Controllers
         /// </summary>
         protected HttpContext? Context { get; private set; }
 
-        protected Files? Files { get; private set; } 
+        /// <summary>
+        /// Collection of user files and provides methods to manage them
+        /// </summary>
+        protected Files? RequestFiles { get; private set; }
 
         /// <summary>
         /// Assigns the HTTP context to the controller
@@ -43,10 +47,10 @@ namespace DotNetWebInterface.Controllers
 
             Context = context ?? throw new ArgumentNullException(nameof(context));
 
-            Files = new Files
+            RequestFiles = new Files
             {
                 Context = context
-            }; 
+            };
         }
 
         /// <summary>
@@ -62,12 +66,12 @@ namespace DotNetWebInterface.Controllers
                 await Context.WriteAsync(
                     statusCode,
                     content,
-                    JsonValidator.IsJson(content) ? "application/json; charset=utf-8" : "text/plain; charset=utf-8"
+                    "application/json; charset=utf-8"
                 );
             }
             else
             {
-                throw new InvalidOperationException("Context is not set.");
+                throw new InvalidOperationException("Context is not set");
             }
         }
 
@@ -82,6 +86,49 @@ namespace DotNetWebInterface.Controllers
                 Context = null!;
 
                 GC.SuppressFinalize(this);
+            }
+        }
+
+
+        /// <summary>
+        /// Retrieves the value of a specific claim type from the claims collection
+        /// </summary>
+        /// <param name="claimType">The type of the claim to retrieve</param>
+        /// <returns>The value of the claim if found; otherwise, "undefined"</returns>
+        protected string GetClaimValue(string claimType)
+        {
+            var claimValue = Claims.FirstOrDefault(c => c.Type == claimType);
+            if (claimValue == null)
+            {
+                return "undefined";
+            }
+
+            return claimValue.Value;
+        }
+
+        /// <summary>
+        /// Retrieves the value of a claim and deserializes it into the specified type
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize the claim value into</typeparam>
+        /// <param name="claimType">The type of the claim to retrieve</param>
+        /// <returns>The deserialized claim value</returns>
+        /// <exception cref="KeyNotFoundException">Thrown when the claim type is not found</exception>
+        /// <exception cref="InvalidOperationException">Thrown when deserialization to the specified type fails</exception>
+        public T GetClaimValue<T>(string claimType)
+        {
+            var claim = Claims.FirstOrDefault(c => c.Type == claimType);
+            if (claim == null)
+            {
+                throw new KeyNotFoundException($"Claim of type '{claimType}' not found");
+            }
+
+            try
+            {
+                return JsonConvert.DeserializeObject<T>(claim.Value) ?? throw new InvalidOperationException($"Failed to deserialize claim value to type '{typeof(T).Name}'");
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException($"Failed to deserialize claim value to type '{typeof(T).Name}'", ex);
             }
         }
 

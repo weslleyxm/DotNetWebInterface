@@ -1,7 +1,7 @@
-﻿using System.Reflection; 
+﻿using System.Diagnostics;
+using System.Reflection;
+using DotNetWebInterface.Controllers;
 using DotNetWebInterface.Controllers.Authentication;
-using DotNetWebInterface.Controllers.Role;
-using DotNetWebInterface.Controllers.Route;
 using DotNetWebInterface.Server;
 
 namespace DotNetWebInterface.Controllers
@@ -33,7 +33,7 @@ namespace DotNetWebInterface.Controllers
             {
                 var isRequiredAuthenticationForAll = routeClass.GetCustomAttributes<RequireAuthenticationAttribute>(true).Any();
                 var methods = GetPublicInstanceMethods(routeClass).Where(m => m.GetCustomAttributes<RouteAttribute>().Any());
-                  
+
                 foreach (var method in methods)
                 {
                     ProcessRoute(routeClass, method, isRequiredAuthenticationForAll);
@@ -63,7 +63,7 @@ namespace DotNetWebInterface.Controllers
         /// </summary> 
         private static void ProcessRoute(Type routeClass, MethodInfo method, bool isRequiredAuthenticationForAll)
         {
-            var routeAttribute = method.GetCustomAttribute<RouteAttribute>();
+            var routeAttribute = method.GetCustomAttribute<RouteAttribute>(true);
             if (routeAttribute == null) return;
 
             var routeKey = routeAttribute.Path.ToLowerInvariant();
@@ -77,11 +77,12 @@ namespace DotNetWebInterface.Controllers
             }
 
             var authenticationRequired = isRequiredAuthenticationForAll || method.GetCustomAttribute<RequireAuthenticationAttribute>() != null;
-             
+
             var roleAttribute = method.GetCustomAttribute<RequireRoleAttribute>();
+            var fileProcessingAttribute = method.GetCustomAttribute<AllowFileProcessingAttribute>();
             var roleRequired = roleAttribute != null;
             var strRoleRequire = roleAttribute?.RequiredRole ?? string.Empty;
-
+            var supportFileProcessing = fileProcessingAttribute != null;
             var parameters = method.GetParameters();
             var requestType = parameters.FirstOrDefault()?.ParameterType ?? typeof(object);
 
@@ -92,6 +93,7 @@ namespace DotNetWebInterface.Controllers
                 requestType,
                 authenticationRequired,
                 roleRequired,
+                supportFileProcessing,
                 strRoleRequire
             ));
         }
@@ -130,49 +132,56 @@ namespace DotNetWebInterface.Controllers
                 ? method
                 : RequestMethod.Get;
 
-            if (_routes.TryGetValue(context.AbsolutePath, out var route) && route.Method == httpMethod)
+            if (_routes.ContainsKey(context.AbsolutePath))
             {
-                return async ctx =>
+                var route = _routes[context.AbsolutePath];
+                if (route.Method == httpMethod)
                 {
-                    try
+                    return async ctx =>
                     {
-                        if (route.Action != null && route != null)
+                        try
                         {
-                            var instance = Factory.Create<Controller>(route.Type);
-                            instance.SetContext(context);
-
-                            var returnType = route.Action.ReturnType;
-
-                            var parameters = RequestResolver.Resolver(route, context);
-
-                            if (typeof(Task).IsAssignableFrom(returnType))
+                            if (route.Action != null && route != null)
                             {
-                                var task = (Task)route.Action.Invoke(instance, parameters)!;
-                                await task;
+                                await Factory.CreateAsync<Controller>(route.Type, async service =>
+                                { 
+                                    service.SetContext(context);  
+                                    var parameters = RequestResolver.Resolver(route, context);  
+                                    var stopwatch2 = Stopwatch.StartNew();
+                                    var executor = (Func<object, object?[]?, object?>)MethodExecutorCache.GetDelegate(route.Action); 
+                                    var result = executor(service, parameters);
+
+                                    if (result is Task task)
+                                    {
+                                        await task;
+                                    }
+                                     
+                                }); 
                             }
                             else
                             {
-                                route.Action.Invoke(instance, parameters);
+                                await ctx.WriteAsync(500, "Internal Server Error: Route action or instance is null");
                             }
-
-                            instance.Dispose();
                         }
-                        else
+                        catch (TargetInvocationException ex)
                         {
-                            await ctx.WriteAsync(500, "Internal Server Error: Route action or instance is null");
+                            Console.WriteLine($"Route Execution Error: {ex.InnerException?.Message}");
+                            await ctx.WriteAsync(500, "Internal Server Error: Exception during route execution");
                         }
-                    }
-                    catch (TargetInvocationException ex)
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Unexpected Error: {ex.Message}");
+                            await ctx.WriteAsync(500, "Internal Server Error");
+                        }
+                    };
+                }
+                else
+                {
+                    return async ctx =>
                     {
-                        Console.WriteLine($"Route Execution Error: {ex.InnerException?.Message}");
-                        await ctx.WriteAsync(500, "Internal Server Error: Exception during route execution");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Unexpected Error: {ex.Message}");
-                        await ctx.WriteAsync(500, "Internal Server Error");
-                    }
-                };
+                        await ctx.WriteAsync(404, "Route not found");
+                    };
+                }
             }
             else
             {
@@ -190,13 +199,22 @@ namespace DotNetWebInterface.Controllers
         /// <returns>True if authentication is required, otherwise false</returns>
         internal static bool IsAuthenticationRequired(string requestPath)
         {
-            return _routes.TryGetValue(requestPath, out var route) && route.AuthenticationRequired;
+            var route = GetRoute(requestPath);
+            return route?.AuthenticationRequired ?? false;
         }
 
+
+        /// <summary>
+        /// Checks if a specific role is required for the given request path
+        /// </summary>
+        /// <param name="requestPath">The request path to check</param>
+        /// <param name="roleRequired">The required role for the route</param>
+        /// <returns>True if a specific role is required, otherwise false</returns>
         internal static bool IsRoleRequired(string requestPath, out string roleRequired)
         {
             roleRequired = string.Empty;
-            if (_routes.TryGetValue(requestPath, out var route) && route.RoleIsRequired)
+            var route = GetRoute(requestPath);
+            if (route != null && route.RoleIsRequired)
             {
                 roleRequired = route.RoleRequired;
                 return true;
@@ -205,5 +223,46 @@ namespace DotNetWebInterface.Controllers
             return false;
         }
 
+        /// <summary>
+        /// Checks if multipart support is enabled for the given request path
+        /// </summary>
+        /// <param name="requestPath">The absolute path to check</param>
+        /// <returns>True if multipart support is enabled, otherwise false</returns>
+        internal static bool SupportMultipart(string requestPath)
+        {
+            var route = GetRoute(requestPath);
+            return route?.SupportFileProcessing ?? false;
+        }
+
+        private static RouteInfo? GetRoute(string absolutePath)
+        {
+            if (_routes.ContainsKey(absolutePath))
+            {
+                return _routes[absolutePath];
+            }
+
+            return null;
+        }
+
+        internal static void PreWarm()
+        {
+            foreach (var route in _routes.Values)
+            { 
+                var executor = (Func<object, object?[], object?>)MethodExecutorCache.GetDelegate(route.Action);
+                 
+                var fakeService = Factory.Create<Controller>(route.Type);  
+                var fakeParameters = route.Action.GetParameters()
+                    .Select(p => GetDefaultValue(p.ParameterType))
+                    .ToArray();
+
+                executor(fakeService!, fakeParameters); 
+            }
+        }
+
+        private static object? GetDefaultValue(Type type)
+        {
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
+        }
     }
 }
+ 

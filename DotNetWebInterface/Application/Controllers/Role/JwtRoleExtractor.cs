@@ -1,6 +1,6 @@
 ﻿using DotNetWebInterface.Server; 
  
-namespace DotNetWebInterface.Controllers.Role
+namespace DotNetWebInterface
 {
     public class JwtRoleExtractor : IRoleProvider
     {

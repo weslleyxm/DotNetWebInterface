@@ -1,4 +1,4 @@
-﻿namespace DotNetWebInterface.Controllers.Role
+﻿namespace DotNetWebInterface.Controllers
 {
     [AttributeUsage(AttributeTargets.Method)]
     public class RequireRoleAttribute : Attribute

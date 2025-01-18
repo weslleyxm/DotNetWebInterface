@@ -1,5 +1,4 @@
-﻿using DotNetWebInterface.Middleware;
-using DotNetWebInterface.Services;
+﻿using DotNetWebInterface.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DotNetWebInterface.Extensions
@@ -11,14 +10,16 @@ namespace DotNetWebInterface.Extensions
         /// </summary>
         /// <param name="builder">The application builder.</param>
         /// <param name="provideSecret">A function that provides the secret key.</param>
-        public static void AddAuthenticationService(this IApplicationBuilder builder, Func<string> provideSecret)
+        public static void AddAuthentication(this IApplicationBuilder builder, Action<AuthenticationService> action)
         {
-            var secretKey = provideSecret();
+            var auth = new AuthenticationService(builder);
 
             ServiceContainer.ConfigureServices(services =>
             {
-                services.AddSingleton<AuthenticationService>(provider => new AuthenticationService(secretKey)); 
+                services.AddSingleton<AuthenticationService>(provider => auth); 
             });
+
+            action?.Invoke(auth);
         }
     }
 }

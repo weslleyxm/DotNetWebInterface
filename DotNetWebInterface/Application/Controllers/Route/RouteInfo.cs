@@ -5,7 +5,7 @@ namespace DotNetWebInterface
     /// <summary>
     /// Represents the information about a route, including the HTTP method, action, type, request type, and authentication/authorization requirements
     /// </summary>
-    public class RouteInfo(RequestMethod method, MethodInfo action, Type type, Type requestType, bool authenticationRequired = false, bool roleIsRequired = false, string roleRequired = "")
+    public class RouteInfo(RequestMethod method, MethodInfo action, Type type, Type requestType, bool authenticationRequired = false, bool roleIsRequired = false, bool supportFileProcessing = false, string roleRequired = "")
     {
         /// <summary>
         /// Gets or sets the HTTP method for the route
@@ -33,9 +33,15 @@ namespace DotNetWebInterface
         public bool RoleIsRequired { get; set; } = roleIsRequired;
 
         /// <summary>
+        /// Gets or sets a value indicating whether is support file processing for the route
+        /// </summary>
+        public bool SupportFileProcessing { get; set; } = supportFileProcessing;
+
+        /// <summary>
         /// Gets or sets the required role for the route
         /// </summary>
         public string RoleRequired { get; set; } = roleRequired;
+
 
         /// <summary>
         /// Gets or sets the request type for the route
